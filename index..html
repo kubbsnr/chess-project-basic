@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>At ve Vezir</title>
+    <style>
+        :root {
+            
+            --bg-body: #0f172a;
+            --board-border: #1e293b;
+            --sq-light: #94a3b8;
+            --sq-dark: #334155;
+            --highlight: #f59e0b; 
+            --highlight-glow: rgba(245, 158, 11, 0.4);
+            --text-color: #f8fafc;
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background-color: var(--bg-body);
+            font-family: 'Inter', 'Segoe UI', sans-serif;
+            color: var(--text-color);
+            margin: 0;
+        }
+
+        
+        h1 {
+            font-weight: 300;
+            letter-spacing: 4px;
+            margin-bottom: 15px; 
+            text-transform: uppercase;
+            font-size: 1.5rem;
+            opacity: 0.8;
+            text-align: center;
+        }
+
+        
+        .board-container {
+            padding: 15px;
+            background: var(--board-border);
+            border-radius: 12px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+            
+            margin-top: 10px; 
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(8, 60px);
+            grid-template-rows: repeat(8, 60px);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        
+        .square {
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            transition: background-color 0.2s ease;
+        }
+
+        .white {
+            background-color: var(--sq-light);
+        }
+
+        .black {
+            background-color: var(--sq-dark);
+        }
+
+        
+        .piece-svg {
+            width: 48px;
+            height: 48px;
+            z-index: 20;
+            cursor: pointer;
+            filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.4));
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .piece-svg:hover {
+            transform: translateY(-5px) scale(1.1);
+            filter: drop-shadow(0 10px 15px rgba(0, 0, 0, 0.5));
+        }
+
+        
+        .move-indicator {
+            position: absolute;
+            width: 24px;
+            height: 24px;
+            background-color: var(--highlight);
+            border-radius: 50%;
+            z-index: 10;
+            box-shadow: 0 0 15px var(--highlight-glow);
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+            opacity: 0.8;
+        }
+
+        .square:has(.move-indicator) {
+            box-shadow: inset 0 0 20px rgba(245, 158, 11, 0.2);
+        }
+
+        @keyframes popIn {
+            from { transform: scale(0); opacity: 0; }
+            to { transform: scale(1); opacity: 0.8; }
+        }
+
+        
+        .btn-action {
+            
+            margin-bottom: 25px; 
+            margin-top: 0;
+            
+            padding: 12px 28px; 
+            background-color: transparent;
+            color: var(--highlight);
+            border: 2px solid var(--highlight);
+            border-radius: 50px; 
+            font-size: 0.95rem;
+            font-weight: 600;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+        }
+
+        .btn-action:hover {
+            background-color: var(--highlight);
+            color: var(--bg-body);
+            box-shadow: 0 0 20px var(--highlight-glow);
+            transform: translateY(-2px);
+        }
+
+        .btn-action:active {
+            transform: translateY(0);
+        }
+
+        
+        @media (max-width: 550px) {
+            .board {
+                grid-template-columns: repeat(8, 11vw);
+                grid-template-rows: repeat(8, 11vw);
+            }
+            .square {
+                width: 11vw;
+                height: 11vw;
+            }
+            .piece-svg {
+                width: 8vw;
+                height: 8vw;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <button class="btn-action" onclick="randomize()">Yenile</button>
+
+    <div class="board-container">
+        <div class="board" id="board"></div>
+    </div>
+
+    <script>
+        const boardEl = document.getElementById('board');
+        
+        const SVGS = {
+            knight: `<svg class="piece-svg" viewBox="0 0 298 298" fill="#fff"><path d="M210.952,116c14.912,0,27.037-12.088,27.037-27s-10.945-25.013-26.964-30.666c-11.333-4-18.018-10.823-23.009-19.412 C183.025,30.333,172.025,17,157.525,17c-5.832,0-19.798,0-19.798,0V0c-107,40.03-72.369,184-72.369,184h21.369v14h-6.369 c-4.418,0-8.631,3.582-8.631,8v1c0,3.289,2.302,6.111,5.14,7.341c-8.77,15.05-1.419,29.775,0.761,33.659h-5.271 c-4.418,0-8.631,3.582-8.631,8v18c0,4.418,4,8,8,8v16h132v-16.069c4-0.493,7-3.853,7-7.931v-18c0-4.418-2.951-8-7.369-8h-4.27 c2.181-3.884,8.902-18.609,0.13-33.659c2.838-1.23,4.508-4.052,4.508-7.341v-1c0-4.418-2.951-8-7.369-8h-7.631v-14h24.132 c-16.501-54-66.334-83-66.334-83h40.182C191.146,109.889,200.351,116,210.952,116z"/></svg>`,
+            queen: `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" fill="#fff" height="50px" width="50px" version="1.1" id="Capa_1" viewBox="0 0 297.77 297.77" xml:space="preserve">
+<g>
+	<path d="M207.218,255.77h-3.369c2.214-3.337,8.32-14.536-0.712-25.6c-8.9-10.905-25.129-39.546-24.438-64.4h3.519   c4.418,0,7.667-3.582,7.667-8v-1c0-4.418-3.582-8-8-8c4.418,0,8-3.582,8-8v-1c0-4.418-3.249-8-7.667-8h-4.626   c-2.064-21.741,1.078-43.054,5.959-54.666c1.86-4.425,4.118-7.79,6.296-10.334h1.371c4.418,0,7.667-3.582,7.667-8v-1   c0-4.418-3.249-8-7.667-8h-9.8c-1.803-10.896-8.998-19.966-18.755-24.383c1.783-2.607,2.829-5.757,2.829-9.154   C165.492,7.267,158.227,0,149.26,0s-16.234,7.267-16.234,16.232c0,3.385,1.037,6.525,2.809,9.127   c-9.788,4.406-17.01,13.49-18.816,24.41h-10.8c-4.418,0-8.333,3.582-8.333,8v1c0,4.418,3.915,8,8.333,8h2.371   c2.178,2.544,4.436,5.909,6.296,10.334c4.881,11.612,8.023,32.925,5.959,54.666h-4.626c-4.418,0-8.333,3.582-8.333,8v1   c0,4.418,3.582,8,8,8c-4.418,0-8,3.582-8,8v1c0,4.418,3.915,8,8.333,8h3.602c0.692,24.854-15.536,53.495-24.438,64.4   c-9.031,11.063-2.926,22.263-0.712,25.6h-3.452c-4.418,0-8.333,3.582-8.333,8v9c0,4.078,3,7.438,7,7.931v17.069h118V280.7   c4-0.493,7-3.853,7-7.931v-9C214.885,259.352,211.636,255.77,207.218,255.77z"/>
+</g>
+</svg>`
+        };
+
+        function createBoard() {
+            boardEl.innerHTML = '';
+            for (let r = 0; r < 8; r++) {
+                for (let c = 0; c < 8; c++) {
+                    const sq = document.createElement('div');
+                    sq.className = `square ${(r + c) % 2 === 0 ? 'white' : 'black'}`;
+                    sq.dataset.r = r;
+                    sq.dataset.c = c;
+                    boardEl.appendChild(sq)
+                }
+            }
+        }
+
+        function randomize() {
+            createBoard();
+            const knight = {
+                r: Math.floor(Math.random() * 8),
+                c: Math.floor(Math.random() * 8)
+            };
+            let queen;
+            do {
+                queen = {
+                    r: Math.floor(Math.random() * 8),
+                    c: Math.floor(Math.random() * 8)
+                }
+            } while (queen.r === knight.r && queen.c === knight.c);
+            
+            addPiece(knight.r, knight.c, 'knight');
+            addPiece(queen.r, queen.c, 'queen')
+        }
+
+        function addPiece(r, c, type) {
+            const sq = document.querySelector(`[data-r="${r}"][data-c="${c}"]`);
+            const div = document.createElement('div');
+            div.style.display = 'flex'; 
+            div.style.justifyContent = 'center';
+            div.style.alignItems = 'center';
+            div.innerHTML = SVGS[type];
+            div.onclick = (e) => {
+                e.stopPropagation();
+                showMoves(r, c, type)
+            };
+            sq.appendChild(div)
+        }
+
+        function showMoves(r, c, type) {
+            document.querySelectorAll('.move-indicator').forEach(el => el.remove());
+            let targets = [];
+            
+            if (type === 'knight') {
+                const knightMoves = [
+                    [-2, -1], [-2, 1], [2, -1], [2, 1], 
+                    [-1, -2], [-1, 2], [1, -2], [1, 2]
+                ];
+                targets = knightMoves.map(([dr, dc]) => [r + dr, c + dc])
+            } else if (type === 'queen') {
+                for (let i = 1; i < 8; i++) {
+                    targets.push(
+                        [r + i, c + i], [r + i, c - i], [r - i, c + i], [r - i, c - i],
+                        [r + i, c], [r - i, c], [r, c + i], [r, c - i]
+                    )
+                }
+            }
+
+            targets.forEach(([nr, nc]) => {
+                if (nr >= 0 && nr < 8 && nc >= 0 && nc < 8) {
+                    const sq = document.querySelector(`[data-r="${nr}"][data-c="${nc}"]`);
+                    const marker = document.createElement('div');
+                    marker.className = 'move-indicator';
+                    sq.appendChild(marker)
+                }
+            })
+        }
+        randomize();
+    </script>
+</body>
+
+</html>
